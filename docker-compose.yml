@@ -1,0 +1,63 @@
+version: '3.8'
+
+services:
+  # 1. High-Performance Relational Ledger Storage
+  mysql-db:
+    image: mysql:8.0
+    container_name: fintech-mysql
+    ports:
+      - "3307:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: root123
+      MYSQL_DATABASE: fintech_wallet
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - fintech-network
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -u root --silent || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # 2. Distributed Memory Caching Engine
+  redis-cache:
+    image: redis:7.2-alpine
+    container_name: fintech-redis
+    ports:
+      - "6379:6379"
+    networks:
+      - fintech-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # 3. Containerized Spring Boot Application
+  wallet-app:
+    build: .
+    container_name: fintech-wallet-app
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql-db:3306/fintech_wallet?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+      - SPRING_DATASOURCE_USERNAME=root
+      - SPRING_DATASOURCE_PASSWORD=root123
+      - SPRING_DATA_REDIS_HOST=redis-cache
+      - SPRING_DATA_REDIS_PORT=6379
+    depends_on:
+      mysql-db:
+        condition: service_healthy
+      redis-cache:
+        condition: service_healthy
+    networks:
+      - fintech-network
+
+volumes:
+  mysql_data:
+
+networks:
+  fintech-network:
+    driver: bridge
