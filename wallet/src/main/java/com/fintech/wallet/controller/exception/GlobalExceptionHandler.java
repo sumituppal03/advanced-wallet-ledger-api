@@ -1,8 +1,10 @@
 package com.fintech.wallet.controller.exception;
 
-import com.fintech.wallet.service.ErrorResponse; // Explicitly added the missing import
+import com.fintech.wallet.service.ErrorResponse;
 import com.fintech.wallet.service.exception.InsufficientFundsException;
 import com.fintech.wallet.service.exception.ResourceNotFoundException;
+import org.springframework.ai.retry.NonTransientAiException; // Added
+import org.springframework.ai.retry.TransientAiException;    // Added
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -45,6 +47,19 @@ public class GlobalExceptionHandler {
                 combinedErrors
         );
         return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
+    }
+
+    // ◄─── NEW AI EXCEPTION HANDLER METHOD ───►
+    @ExceptionHandler({NonTransientAiException.class, TransientAiException.class})
+    public ResponseEntity<ErrorResponse> handleAiProviderException(Exception ex) {
+        System.err.println("AI Provider Error Intercepted: " + ex.getMessage());
+
+        ErrorResponse error = new ErrorResponse(
+                HttpStatus.SERVICE_UNAVAILABLE.value(),
+                "AI Service Unavailable",
+                "The AI Financial Advisor is currently busy or experiencing a connection issue. Please try again in a few moments."
+        );
+        return new ResponseEntity<>(error, HttpStatus.SERVICE_UNAVAILABLE);
     }
 
     @ExceptionHandler(Exception.class)
