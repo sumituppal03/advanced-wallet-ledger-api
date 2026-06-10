@@ -7,6 +7,9 @@ import com.fintech.wallet.service.TransferRequest;
 import com.fintech.wallet.repository.WalletRepository;
 import com.fintech.wallet.service.exception.InsufficientFundsException;
 import com.fintech.wallet.service.exception.ResourceNotFoundException;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.cache.annotation.Cacheable;
@@ -28,7 +31,6 @@ public class WalletService {
     public void transferFunds(TransferRequest request, String clientTransactionId) {
         
         // 1. IDEMPOTENCY CHECK: Catch retries before doing any database execution
-        // We look for the exact tracking code passed by the user's device/client application
         var existingDebitLog = ledgerEntryRepository.findByTransactionId(clientTransactionId);
         if (existingDebitLog.isPresent()) {
             System.out.println("Idempotency Triggered! Request with transactionId " + clientTransactionId + " was already processed safely.");
@@ -70,8 +72,6 @@ public class WalletService {
         );
 
         // Row B: The Credit Entry (Adding to Receiver)
-        // Note: To keep things unique since you use transaction_id as a unique index column,
-        // we can append a suffix or query lookups cleanly depending on index choices.
         LedgerEntry creditEntry = new LedgerEntry(
                 clientTransactionId + "-CR", 
                 receiverWallet, 
@@ -90,5 +90,24 @@ public class WalletService {
         return walletRepository.findByUserId(userId)
                 .map(Wallet::getCurrentBalance)
                 .orElseThrow(() -> new ResourceNotFoundException("Wallet not found for user: " + userId));
+    }
+
+    @Transactional(readOnly = true)
+    public Page<TransactionHistoryResponse> getTransactionHistory(Long userId, int page, int size) {
+        Wallet wallet = walletRepository.findByUserId(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Wallet not found for user: " + userId));
+
+        Pageable pageable = PageRequest.of(page, size);
+
+        Page<LedgerEntry> ledgerEntries = ledgerEntryRepository.findByWalletIdOrderByCreatedAtDesc(wallet.getId(), pageable);
+        
+        return ledgerEntries.map(entry -> new TransactionHistoryResponse(
+                entry.getTransactionId(),
+                entry.getType().toString(), 
+                entry.getAmount(),
+                entry.getDescription(),
+                entry.getCreatedAt()
+        ));
+    
     }
 }
