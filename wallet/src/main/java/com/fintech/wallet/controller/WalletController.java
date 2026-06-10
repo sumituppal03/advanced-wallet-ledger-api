@@ -6,6 +6,7 @@ import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader; // Added this import
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -20,14 +21,19 @@ public class WalletController {
         this.walletService = walletService;
     }
 
-    /**
-     * Endpoint to execute a secure fund transfer between wallets.
-     * @Valid activates the Jakarta Validation constraints inside the TransferRequest object.
-     */
     @PostMapping("/transfer")
-    public ResponseEntity<String> executeTransfer(@Valid @RequestBody TransferRequest request) {
-        // Hand off the data payload to our transactional service engine
-        walletService.transferFunds(request);
+    public ResponseEntity<String> executeTransfer(
+            @RequestHeader("X-Transaction-Id") String transactionId, // Extracted tracking token from headers
+            @Valid @RequestBody TransferRequest request) {
+        
+        // Guard Rail: Reject instantly if the client application didn't supply an idempotency key
+        if (transactionId == null || transactionId.isBlank()) {
+            return ResponseEntity.badRequest()
+                .body("Error: Missing required 'X-Transaction-Id' header for idempotency protection.");
+        }
+
+        // Hand off the data payload AND the unique token identifier to our transactional service engine
+        walletService.transferFunds(request, transactionId);
         
         // Return a clean 200 OK success message if the full database ledger transaction succeeds
         return ResponseEntity.ok("Transaction completed successfully. Ledger records updated.");

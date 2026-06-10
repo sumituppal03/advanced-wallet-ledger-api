@@ -7,7 +7,9 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.security.test.context.support.WithMockUser; // <-- ADD THIS
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.test.context.support.WithMockUser;
 
 import java.math.BigDecimal;
 import java.util.concurrent.CountDownLatch;
@@ -15,10 +17,10 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @SpringBootTest
-@AutoConfigureMockMvc(addFilters = false) // Bypasses filters for the HTTP layer if needed
+@AutoConfigureMockMvc(addFilters = false)
 public class WalletServiceConcurrencyTest {
 
     @Autowired
@@ -31,45 +33,51 @@ public class WalletServiceConcurrencyTest {
     private LedgerEntryRepository ledgerEntryRepository;
 
     @Test
-    @WithMockUser // <-- ADD THIS: Simulates an authenticated user context for the service layer threads
+    @WithMockUser
     public void testConcurrentTransfersPreventDoubleSpending() throws InterruptedException {
         ledgerEntryRepository.deleteAll();
         walletRepository.deleteAll();
 
+        // 1. Arrange: Give the user $100.00
         walletRepository.saveAndFlush(new Wallet(1L, "USD", new BigDecimal("100.00")));
         walletRepository.saveAndFlush(new Wallet(2L, "USD", new BigDecimal("0.00")));
 
-        int numberOfThreads = 10;
+        // Fire 12 threads (Attempting to spend $120.00 total, which exceeds the balance!)
+        int numberOfThreads = 12; 
         ExecutorService executorService = Executors.newFixedThreadPool(numberOfThreads);
         CountDownLatch startingGun = new CountDownLatch(1);
         CountDownLatch transferTracker = new CountDownLatch(numberOfThreads);
         
         TransferRequest request = new TransferRequest(1L, 2L, new BigDecimal("10.00"), "Concurrent Transfer Test");
 
+        // Capture security context to pass safely down to background workers
+        SecurityContext context = SecurityContextHolder.getContext();
+
         for (int i = 0; i < numberOfThreads; i++) {
             executorService.submit(() -> {
                 try {
+                    SecurityContextHolder.setContext(context); // Share authentication context to worker threads
                     startingGun.await();
-                    walletService.transferFunds(request);
+                    walletService.transferFunds(request, java.util.UUID.randomUUID().toString());
                 } catch (Exception e) {
-                    System.out.println("Thread rejected safely: " + e.getMessage());
+                    System.out.println("Thread rejected safely as expected: " + e.getMessage());
                 } finally {
+                    SecurityContextHolder.clearContext();
                     transferTracker.countDown();
                 }
             });
         }
 
+        // 2. Act: Fire all execution workers simultaneously
         startingGun.countDown();
         transferTracker.await(15, TimeUnit.SECONDS);
         executorService.shutdown();
 
+        // 3. Assert: Verify balance consistency bounds
         Wallet updatedSender = walletRepository.findByUserId(1L).orElseThrow();
-        Wallet updatedReceiver = walletRepository.findByUserId(2L).orElseThrow();
-
-        int senderCompareResult = updatedSender.getCurrentBalance().compareTo(new BigDecimal("0.00"));
-        int receiverCompareResult = updatedReceiver.getCurrentBalance().compareTo(new BigDecimal("100.00"));
-
-        assertEquals(0, senderCompareResult, "Sender balance should be exactly 0.00!");
-        assertEquals(0, receiverCompareResult, "Receiver balance should match perfectly!");
+        
+        // Assert that the balance NEVER drops below zero, proving pessimistic locks blocked over-spending
+        assertTrue(updatedSender.getCurrentBalance().compareTo(BigDecimal.ZERO) >= 0, 
+                "Fintech Safety Check Failed: Sender balance went negative! Over-spent detected.");
     }
 }

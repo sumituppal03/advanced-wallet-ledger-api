@@ -3,13 +3,15 @@ package com.fintech.wallet.service;
 import com.fintech.wallet.entity.LedgerEntry;
 import com.fintech.wallet.entity.Wallet;
 import com.fintech.wallet.repository.LedgerEntryRepository;
+import com.fintech.wallet.service.TransferRequest;
 import com.fintech.wallet.repository.WalletRepository;
 import com.fintech.wallet.service.exception.InsufficientFundsException;
 import com.fintech.wallet.service.exception.ResourceNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.CacheEvict;
 import java.math.BigDecimal;
-import java.util.UUID;
 
 @Service
 public class WalletService {
@@ -22,29 +24,35 @@ public class WalletService {
     }
 
     @Transactional(rollbackFor = Exception.class)
-    public void transferFunds(TransferRequest request){
+    @CacheEvict(value = "balances", allEntries = true) 
+    public void transferFunds(TransferRequest request, String clientTransactionId) {
         
+        // 1. IDEMPOTENCY CHECK: Catch retries before doing any database execution
+        // We look for the exact tracking code passed by the user's device/client application
+        var existingDebitLog = ledgerEntryRepository.findByTransactionId(clientTransactionId);
+        if (existingDebitLog.isPresent()) {
+            System.out.println("Idempotency Triggered! Request with transactionId " + clientTransactionId + " was already processed safely.");
+            return; // Exit out gracefully without executing anything twice
+        }
+
         // Safety validation check: Enforce that you can't send money to yourself
         if (request.getSenderUserId().equals(request.getReceiverUserId())) {
             throw new IllegalArgumentException("Sender and receiver cannot be the same user account.");
         }
 
-        // CURRENCY CHECK
+        // CURRENCY CHECK WITH PESSIMISTIC ROW LOCKING
         Wallet senderWallet = walletRepository.findByUserIdForUpdate(request.getSenderUserId())
             .orElseThrow(() -> new ResourceNotFoundException("Sender wallet not found for user: " + request.getSenderUserId()));
         
         Wallet receiverWallet = walletRepository.findByUserIdForUpdate(request.getReceiverUserId())
             .orElseThrow(() -> new ResourceNotFoundException("Receiver wallet not found for user: " + request.getReceiverUserId()));
 
-        //BALANCE COMPLIANCE CHECK 
+        // BALANCE COMPLIANCE CHECK 
         if (senderWallet.getCurrentBalance().compareTo(request.getAmount()) < 0) {
             throw new InsufficientFundsException("Insufficient funds. Available: " + senderWallet.getCurrentBalance() + ", Requested: " + request.getAmount());
         }  
 
-        //GENERATE SHARED TRANSACTION UUID
-        String transactionId = UUID.randomUUID().toString();
-
-        //UPDATE CACHED BALANCES
+        // UPDATE BALANCES
         senderWallet.setCurrentBalance(senderWallet.getCurrentBalance().subtract(request.getAmount()));
         receiverWallet.setCurrentBalance(receiverWallet.getCurrentBalance().add(request.getAmount()));
 
@@ -52,9 +60,9 @@ public class WalletService {
         walletRepository.save(senderWallet);
         walletRepository.save(receiverWallet);
 
-        // Row A: The Debit Entry (Deducting from Sender)
+        // Row A: The Debit Entry (Deducting from Sender using the CLIENT'S IDEMPOTENCY KEY)
         LedgerEntry debitEntry = new LedgerEntry(
-                transactionId, 
+                clientTransactionId, 
                 senderWallet, 
                 LedgerEntry.EntryType.DEBIT, 
                 request.getAmount(), 
@@ -62,8 +70,10 @@ public class WalletService {
         );
 
         // Row B: The Credit Entry (Adding to Receiver)
+        // Note: To keep things unique since you use transaction_id as a unique index column,
+        // we can append a suffix or query lookups cleanly depending on index choices.
         LedgerEntry creditEntry = new LedgerEntry(
-                transactionId, 
+                clientTransactionId + "-CR", 
                 receiverWallet, 
                 LedgerEntry.EntryType.CREDIT, 
                 request.getAmount(), 
@@ -73,5 +83,12 @@ public class WalletService {
         ledgerEntryRepository.save(debitEntry);
         ledgerEntryRepository.save(creditEntry);
     }    
-}
 
+    @Cacheable(value = "balances", key = "#userId")
+    public BigDecimal getWalletBalance(Long userId) {
+        System.out.println("Cache Miss! Fetching fresh balance from MySQL for User: " + userId);
+        return walletRepository.findByUserId(userId)
+                .map(Wallet::getCurrentBalance)
+                .orElseThrow(() -> new ResourceNotFoundException("Wallet not found for user: " + userId));
+    }
+}
