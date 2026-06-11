@@ -25,6 +25,7 @@ jobs:
 
     # 3. Compile code and run all backend tests (CI)
     - name: Build and Test with Maven
+      working-directory: wallet
       run: mvn clean verify
 
     # 4. Trigger Deployment to Render (CD)
