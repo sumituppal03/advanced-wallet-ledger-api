@@ -7,6 +7,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.bean.override.mockito.MockitoBean; // For Spring Boot 3.4+ compat
+import org.springframework.ai.chat.model.ChatModel; // New Import
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.test.context.support.WithMockUser;
@@ -19,9 +21,20 @@ import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-@SpringBootTest
+@SpringBootTest(properties = {
+    "spring.datasource.url=jdbc:h2:mem:wallet_concurrency_db;DB_CLOSE_DELAY=-1;MODE=PostgreSQL",
+    "spring.datasource.driver-class-name=org.h2.Driver",
+    "spring.datasource.username=sa",
+    "spring.datasource.password=",
+    "spring.jpa.database-platform=org.hibernate.dialect.H2Dialect",
+    "spring.jpa.hibernate.ddl-auto=update",
+    "spring.ai.openai.api-key=mock-key-for-ci-pipeline"
+})
 @AutoConfigureMockMvc(addFilters = false)
 public class WalletServiceConcurrencyTest {
+
+    @MockitoBean
+    private ChatModel chatModel; // Safely bypasses the Groq/OpenAI initialization blocks
 
     @Autowired
     private WalletService walletService;
