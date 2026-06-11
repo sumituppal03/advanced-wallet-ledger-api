@@ -16,7 +16,6 @@ import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.test.util.ReflectionTestUtils;
-
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
