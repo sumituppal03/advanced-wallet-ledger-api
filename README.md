@@ -1,7 +1,5 @@
 # 💰 Advanced Fintech Wallet API
 
-# 💰 Advanced Fintech Wallet API
-
 A highly secure, high-performance distributed backend architecture for a digital wallet application. Built using Spring Boot, PostgreSQL, and Redis cache, featuring advanced JWT authorization and an integrated LLM-powered financial advisor assistant.
 
 🚀 **Live API Deployment URL:** https://advanced-wallet-ledger-api.onrender.com  
