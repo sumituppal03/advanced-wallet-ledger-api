@@ -6,9 +6,7 @@ import com.fintech.wallet.repository.WalletRepository;
 import org.springframework.data.domain.PageRequest;
 import com.fintech.wallet.service.exception.ResourceNotFoundException;
 import org.springframework.ai.chat.client.ChatClient;
-import org.springframework.ai.openai.OpenAiChatModel;
-import org.springframework.ai.openai.api.OpenAiApi;
-import org.springframework.beans.factory.annotation.Value;
+import org.springframework.ai.chat.model.ChatModel; // Use core ChatModel interface
 import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -20,24 +18,14 @@ public class FinancialAdvisorService {
     private final LedgerEntryRepository ledgerEntryRepository;
     private final WalletRepository walletRepository;
 
-    // Inject your configuration values directly into the constructor
+    // Spring Boot automatically configures the ChatModel bean using your application properties!
     public FinancialAdvisorService(
-            @Value("${spring.ai.openai.api-key}") String apiKey,
-            @Value("${spring.ai.openai.base-url}") String baseUrl,
-            @Value("${spring.ai.openai.chat.options.model}") String model,
+            ChatModel chatModel, 
             LedgerEntryRepository ledgerEntryRepository, 
             WalletRepository walletRepository) {
         
-        // Manual initialization skips the faulty auto-config loops entirely
-        OpenAiApi openAiApi = new OpenAiApi(baseUrl, apiKey);
-        OpenAiChatModel chatModel = new OpenAiChatModel(openAiApi);
-        
-        this.chatClient = ChatClient.builder(chatModel)
-                .defaultOptions(org.springframework.ai.openai.OpenAiChatOptions.builder()
-                        .withModel(model)
-                        .build())
-                .build();
-                
+        // This sets up the ChatClient correctly for Groq out-of-the-box
+        this.chatClient = ChatClient.builder(chatModel).build();
         this.ledgerEntryRepository = ledgerEntryRepository;
         this.walletRepository = walletRepository;
     }
@@ -46,13 +34,12 @@ public class FinancialAdvisorService {
         var wallet = walletRepository.findByUserId(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Wallet not found for user: " + userId));
 
-        // OPTIMIZED: Fetching sorted database entries directly by walletId using our new repository query
-        // Change the repository method name inside generateSpendingInsights to match:
+        // Pulls a maximum of 15 records using your known good pageable query mapping
         List<LedgerEntry> recentTransactions = ledgerEntryRepository
-        .findByWalletIdOrderByCreatedAtDesc(wallet.getId(), PageRequest.of(0, 15))
-        .getContent();
+                .findByWalletIdOrderByCreatedAtDesc(wallet.getId(), PageRequest.of(0, 15))
+                .getContent();
 
-        // Handle cases where a wallet exists but hasn't made any purchases yet
+        // Safe fallback logic for accounts with zero transactions
         String transactionContext = recentTransactions.isEmpty() 
                 ? "No recent transaction history found for this account."
                 : recentTransactions.stream()
