@@ -4,9 +4,12 @@ A highly secure, high-performance distributed backend architecture for a digital
 
 🚀 **Live API Deployment URL:** https://advanced-wallet-ledger-api.onrender.com  
 📖 **Live API Documentation (Swagger UI):** https://advanced-wallet-ledger-api.onrender.com/swagger-ui.html
-
-💻 **Local Development API Documentation:** http://localhost:8080/swagger-ui.html
 ---
+## 🔐 Production API & Swagger Credentials
+
+> 💡 **Note for Interviewers:** This project is fully secured using Spring Security Basic Authentication. To bypass the lock screen and access the live Swagger UI endpoints, use the following credentials:
+* **Username:** `admin`
+* **Password:** `admin123`
 
 ## 🏛️ System Architecture
 
