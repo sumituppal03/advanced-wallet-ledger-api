@@ -8,7 +8,6 @@ import com.fintech.wallet.service.exception.ResourceNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -36,27 +35,23 @@ class FinancialAdvisorServiceTest {
     @Mock
     private WalletRepository walletRepository;
 
-    // We mock the builder directly so InjectMocks can safely use it during auto-construction
-    @Mock(answer = org.mockito.Answers.RETURNS_DEEP_STUBS)
-    private ChatClient.Builder chatClientBuilder;
-
     private ChatClient chatClient;
-
-    @InjectMocks
     private FinancialAdvisorService financialAdvisorService;
 
     @BeforeEach
     void setUp() {
-        // 1. Initialize the ChatClient mock with deep stubs
+        // 1. Completely mock the fluent ChatClient manually
         chatClient = mock(ChatClient.class, Mockito.RETURNS_DEEP_STUBS);
 
-        // 2. Make the mock builder return our mock chatClient when build() is called
-        lenient().when(chatClientBuilder.build()).thenReturn(chatClient);
+        // 2. Instantiate an uninitialized instance directly to bypass constructor parameter matching errors
+        financialAdvisorService = mock(FinancialAdvisorService.class, Mockito.CALLS_REAL_METHODS);
 
-        // 3. Force-inject the chatClient into the service field to bypass any constructor build cache
+        // 3. Force inject all dependency fields safely using Spring's Reflection utilities
+        ReflectionTestUtils.setField(financialAdvisorService, "walletRepository", walletRepository);
+        ReflectionTestUtils.setField(financialAdvisorService, "ledgerEntryRepository", ledgerEntryRepository);
         ReflectionTestUtils.setField(financialAdvisorService, "chatClient", chatClient);
 
-        // 4. Set up fluent stubs for the AI behavior
+        // 4. Setup fluent stubs for the AI pathways
         lenient().when(chatClient.prompt().user(anyString()).call().content())
                 .thenReturn("AI says: You spend too much on coffee.");
                 
