@@ -36,7 +36,10 @@ class FinancialAdvisorServiceTest {
     @Mock
     private WalletRepository walletRepository;
 
-    // Remove the simple @Mock annotation from chatClient so we can initialize it with deep stubs
+    // We mock the builder directly so InjectMocks can safely use it during auto-construction
+    @Mock(answer = org.mockito.Answers.RETURNS_DEEP_STUBS)
+    private ChatClient.Builder chatClientBuilder;
+
     private ChatClient chatClient;
 
     @InjectMocks
@@ -44,17 +47,19 @@ class FinancialAdvisorServiceTest {
 
     @BeforeEach
     void setUp() {
-        // 1. Initialize ChatClient with deep stubs to handle any variations of the fluent chain automatically
+        // 1. Initialize the ChatClient mock with deep stubs
         chatClient = mock(ChatClient.class, Mockito.RETURNS_DEEP_STUBS);
 
-        // 2. Explicitly wire the stubbed client into the service
+        // 2. Make the mock builder return our mock chatClient when build() is called
+        lenient().when(chatClientBuilder.build()).thenReturn(chatClient);
+
+        // 3. Force-inject the chatClient into the service field to bypass any constructor build cache
         ReflectionTestUtils.setField(financialAdvisorService, "chatClient", chatClient);
 
-        // 3. Use lenient() so tests that don't call the AI won't trigger UnnecessaryStubbing exceptions
+        // 4. Set up fluent stubs for the AI behavior
         lenient().when(chatClient.prompt().user(anyString()).call().content())
                 .thenReturn("AI says: You spend too much on coffee.");
                 
-        // Alternative fallback stubbing just in case your code calls .system() right before .user()
         lenient().when(chatClient.prompt().system(anyString()).user(anyString()).call().content())
                 .thenReturn("AI says: You spend too much on coffee.");
     }
@@ -84,7 +89,7 @@ class FinancialAdvisorServiceTest {
         String result = financialAdvisorService.generateSpendingInsights(userId, userQuestion);
 
         // Assert
-        assertNotNull(result, "The service returned null! Verify your ChatClient configuration matches.");
+        assertNotNull(result);
         assertTrue(result.contains("coffee"));
         verify(walletRepository, times(1)).findByUserId(userId);
     }
