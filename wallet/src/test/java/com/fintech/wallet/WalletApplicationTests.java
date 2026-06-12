@@ -2,12 +2,18 @@ package com.fintech.wallet;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.ai.chat.model.ChatModel;
 
 @SpringBootTest
+@ActiveProfiles("test-env") // Points Spring to a clean properties file
 class WalletApplicationTests {
 
-	@Test
-	void contextLoads() {
-	}
+    @MockitoBean
+    private ChatModel chatModel;
 
+    @Test
+    void contextLoads() {
+    }
 }
