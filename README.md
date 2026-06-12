@@ -5,14 +5,13 @@ A highly secure, high-performance distributed backend architecture for a digital
 🚀 **Live API Deployment URL:** https://advanced-wallet-ledger-api.onrender.com  
 📖 **Live API Documentation (Swagger UI):** https://advanced-wallet-ledger-api.onrender.com/swagger-ui.html
 
-💻 **Local Development API Documentation:** http://localhost:8080/swagger-ui.html
 ---
 
 ## 🏛️ System Architecture
 
 This system leverages a decoupled cloud architecture designed to ensure transactional integrity, lightning-fast data retrieval, and secure communication.
 
-* **Core Engine:** Spring Boot 3.x (Java 17) handling REST controllers, security routing, and financial business logic.
+* **Core Engine:** Spring Boot 3.5.14 (Java 21) handling REST controllers, security routing, and financial business logic.
 * **Persistent Storage:** Managed PostgreSQL on Render with custom HikariCP connection pooling tuned for low latency.
 * **Caching Layer:** Distributed Redis cluster to optimize frequently read wallet transaction histories and reduce database load.
 * **AI Engine:** Spring AI abstraction layer connected to Groq Cloud running Llama 3.3 (70B) for automated customer spending analysis.
@@ -31,12 +30,12 @@ This system leverages a decoupled cloud architecture designed to ensure transact
 
 ## 🛠️ Tech Stack & Ecosystem
 
-* **Framework:** Spring Boot 3.x, Spring Data JPA, Spring Security, Spring AI
+* **Framework:** Spring Boot 3.5.14, Spring Data JPA, Spring Security, Spring AI
 * **Database:** PostgreSQL
 * **Caching:** Redis Cache Server
 * **API Management:** Springdoc OpenAPI UI (Swagger)
 * **Deployment Platform:** Render Cloud Infrastructure
-* **Build Tool & Language:** Maven, Java 17
+* **Build Tool & Language:** Maven, Java 21
 
 ---
 
@@ -54,11 +53,36 @@ This application strictly enforces secure DevOps practices. To spin up this proj
 | `SPRING_DATA_REDIS_HOST` | Hostname address mapping to the active Redis caching partition |
 
 ---
+## 🚀 CI/CD Pipeline & Automated Testing
+
+This project utilizes **GitHub Actions** for Continuous Integration and Continuous Deployment (CI/CD) to ensure code reliability, thread safety, and seamless delivery.
+
+### ⚙️ CI/CD Workflow Pipeline
+The pipeline triggers automatically on every `push` or `pull_request` to the `main` branch, executing the following architectural lifecycle:
+
+1. **Environment Setup:** Spins up a virtual Ubuntu container running JDK 21.
+2. **Mocking External Integrations:** Uses Spring's Bean Override (`@MockitoBean`) to mock AI model configurations (`ChatModel`), bypassing production cloud initialization requirements during build runtime.
+3. **Database Isolation:** Dynamically provisions an isolated, PostgreSQL-compatible **H2 In-Memory Database** unique to the test runner via a dedicated `test-env` profile. This keeps test mutations decoupled from live application schemas.
+4. **Validation Suite:** Runs comprehensive system checks, including targeted multi-threaded concurrency validation (`WalletServiceConcurrencyTest`) to prove pessimistic locking blocks double-spending under high stress.
+
+### 🧪 Running Tests Locally
+
+To spin up the embedded test environment and execute the complete integration suite on your local machine, open your terminal and run:
+
+```bash
+# Run the complete test suite from the root folder
+mvn clean test
+
+# Run tests specifically within the wallet submodule
+cd wallet
+mvn clean test
+
+---
 
 ## 🚀 Local Installation & Execution
 
 ### Prerequisites
-* JDK 17 or higher
+* JDK 21 or higher
 * Apache Maven
 * Local instances of PostgreSQL and Redis running
 
@@ -67,3 +91,4 @@ This application strictly enforces secure DevOps practices. To spin up this proj
    ```bash
    git clone [https://github.com/YOUR_GITHUB_USERNAME/YOUR_REPO_NAME.git](https://github.com/YOUR_GITHUB_USERNAME/YOUR_REPO_NAME.git)
    cd YOUR_REPO_NAME
+
