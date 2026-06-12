@@ -16,7 +16,7 @@ public class LedgerEntry {
     private Long id;
 
     // Made unique = true to enforce idempotency at the database constraint layer
-    @Column(name = "transaction_id", nullable = false, unique = true, length = 36)
+    @Column(name = "transaction_id", nullable = false, unique = true, length = 50)
     private String transactionId;
 
     @ManyToOne(fetch = FetchType.LAZY)
