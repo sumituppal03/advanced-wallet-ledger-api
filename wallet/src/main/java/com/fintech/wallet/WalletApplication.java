@@ -1,18 +1,27 @@
 package com.fintech.wallet;
 
+import java.time.ZoneId;
+import java.util.TimeZone;
+
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication(exclude = {
-    // Prevents the modern Spring Cloud Function transitive dependency crash
     org.springframework.cloud.function.context.config.ContextFunctionCatalogAutoConfiguration.class,
-    // Prevents the strict, early startup validation check for standard OpenAI keys
     org.springframework.ai.autoconfigure.openai.OpenAiAutoConfiguration.class,
     org.springframework.ai.autoconfigure.chat.client.ChatClientAutoConfiguration.class
 })
 public class WalletApplication {
 
     public static void main(String[] args) {
+
+        System.setProperty("user.timezone", "UTC");
+        TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
+
+        System.out.println("user.timezone = " + System.getProperty("user.timezone"));
+        System.out.println("ZoneId = " + ZoneId.systemDefault());
+        System.out.println("TimeZone = " + TimeZone.getDefault().getID());
+
         SpringApplication.run(WalletApplication.class, args);
     }
 }
