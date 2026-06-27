@@ -28,9 +28,13 @@ jobs:
 
     # Using the -f flag forces Maven to find the pom.xml inside wallet/ no matter what
     - name: Build and Test with Maven
+      env:
+      env:
+        GROQ_API_KEY: "gsk_v1_mockkeyforcitestingenvironmentpurposesonly12345"
+        SPRING_AI_OPENAI_API_KEY: "gsk_v1_mockkeyforcitestingenvironmentpurposesonly12345"
       run: mvn clean verify -f wallet/pom.xml
 
     - name: Deploy to Render
-      if: success()
-      run: |
-        curl -X POST "https://api.render.com/deploy/srv-d8l5ko3eo5us73b46co0?key=riJPaWRZBy4"
+  if: success()
+  run: |
+    curl -X POST "${{ secrets.RENDER_DEPLOY_HOOK_URL }}"

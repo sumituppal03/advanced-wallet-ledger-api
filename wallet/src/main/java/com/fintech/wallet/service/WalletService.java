@@ -21,10 +21,14 @@ public class WalletService {
     private final WalletRepository walletRepository;
     private final LedgerEntryRepository ledgerEntryRepository;
 
-    public WalletService(WalletRepository walletRepository, LedgerEntryRepository ledgerEntryRepository) {
+    private final TransactionCategorizationService categorizationService;
+
+    public WalletService(WalletRepository walletRepository, LedgerEntryRepository ledgerEntryRepository,TransactionCategorizationService categorizationService) {
         this.walletRepository = walletRepository;
         this.ledgerEntryRepository = ledgerEntryRepository;
+        this.categorizationService = categorizationService;
     }
+   
 
     @Transactional(rollbackFor = Exception.class)
     @CacheEvict(value = "balances", allEntries = true) 
@@ -62,6 +66,7 @@ public class WalletService {
         walletRepository.save(senderWallet);
         walletRepository.save(receiverWallet);
 
+        String category = categorizationService.categorizeTransaction(request.getDescription());
         // Row A: The Debit Entry (Deducting from Sender using the CLIENT'S IDEMPOTENCY KEY)
         LedgerEntry debitEntry = new LedgerEntry(
                 clientTransactionId, 
@@ -70,6 +75,7 @@ public class WalletService {
                 request.getAmount(), 
                 request.getDescription() + " (To User " + request.getReceiverUserId() + ")"
         );
+        debitEntry.setCategory(category);
 
         // Row B: The Credit Entry (Adding to Receiver)
         LedgerEntry creditEntry = new LedgerEntry(
@@ -79,6 +85,7 @@ public class WalletService {
                 request.getAmount(), 
                 request.getDescription() + " (From User " + request.getSenderUserId() + ")"
         );
+        creditEntry.setCategory(category);
 
         ledgerEntryRepository.save(debitEntry);
         ledgerEntryRepository.save(creditEntry);
@@ -106,6 +113,7 @@ public class WalletService {
                 entry.getType().toString(), 
                 entry.getAmount(),
                 entry.getDescription(),
+                entry.getCategory(),
                 entry.getCreatedAt()
         ));
     

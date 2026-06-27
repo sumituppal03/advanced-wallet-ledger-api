@@ -5,20 +5,21 @@ import java.time.LocalDateTime;
 
 public class TransactionHistoryResponse {
     private String transactionId;
-    private String type; // DEBIT or CREDIT
+    private String type;
     private BigDecimal amount;
     private String description;
+    private String category;
     private LocalDateTime createdAt;
 
-    public TransactionHistoryResponse(String transactionId, String type, BigDecimal amount, String description, LocalDateTime createdAt) {
+    public TransactionHistoryResponse(String transactionId, String type, BigDecimal amount, String description, String category, LocalDateTime createdAt) {
         this.transactionId = transactionId;
         this.type = type;
         this.amount = amount;
         this.description = description;
+        this.category = category;
         this.createdAt = createdAt;
     }
 
-    // Getters and Setters
     public String getTransactionId() { 
         return transactionId; 
     }
@@ -47,10 +48,15 @@ public class TransactionHistoryResponse {
         this.description = description; 
     }
 
+    public String getCategory() { 
+        return category; 
+    }
+    public void setCategory(String category) { 
+        this.category = category; 
+    }
+
     public LocalDateTime getCreatedAt() { 
         return createdAt; 
     }
-    public void setCreatedAt(LocalDateTime createdAt) { 
-        this.createdAt = createdAt; 
-    }
+    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 }
