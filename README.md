@@ -2,11 +2,16 @@
 
 > A production-grade fintech wallet backend that eliminates double-spend and overdraft under concurrent load — using an **Immutable Double-Entry Ledger** and **Pessimistic Locking**, not hope.
 
-[![CI](https://github.com/sumituppal03/advanced-wallet-ledger-api/actions/workflows/ci.yml/badge.svg)](https://github.com/sumituppal03/advanced-wallet-ledger-api/actions/workflows/ci.yml)
+[![CI/CD](https://github.com/sumituppal03/advanced-wallet-ledger-api/actions/workflows/ci-cd.yml/badge.svg)](https://github.com/sumituppal03/advanced-wallet-ledger-api/actions/workflows/ci-cd.yml)
 [![Java](https://img.shields.io/badge/Java-21-orange?logo=openjdk)](https://openjdk.org/projects/jdk/21/)
 [![Spring Boot](https://img.shields.io/badge/Spring_Boot-3.x-brightgreen?logo=spring)](https://spring.io/projects/spring-boot)
 [![Docker](https://img.shields.io/badge/Docker-ready-blue?logo=docker)](https://hub.docker.com/)
-[![Live Demo](https://img.shields.io/badge/Live-Render-46E3B7?logo=render)](https://advanced-wallet-ledger-api.onrender.com)
+[![Live Demo](https://img.shields.io/badge/Live_Demo-Render-46E3B7?logo=render)](https://advanced-wallet-ledger-api.onrender.com)
+[![API Docs](https://img.shields.io/badge/API_Docs-Swagger-85EA2D?logo=swagger)](https://advanced-wallet-ledger-api.onrender.com/swagger-ui.html)
+
+**🔗 Live API:** [advanced-wallet-ledger-api.onrender.com](https://advanced-wallet-ledger-api.onrender.com) &nbsp;·&nbsp; **📖 Interactive Docs:** [Swagger UI](https://advanced-wallet-ledger-api.onrender.com/swagger-ui.html)
+
+> ⏱️ Hosted on Render's free tier — the instance spins down after inactivity, so the first request after idle may take 10–30 seconds to wake up.
 
 ---
 
@@ -230,7 +235,7 @@ advanced-wallet-ledger-api/
 │
 ├── Dockerfile                       # Multi-stage: Maven build → JRE runtime
 ├── docker-compose.yml               # Local dev: MySQL + Redis + app
-├── .github/workflows/ci.yml         # GitHub Actions CI pipeline
+├── .github/workflows/ci-cd.yml      # GitHub Actions CI/CD pipeline
 └── BUSINESS.md                      # Problem context & design decisions
 ```
 
@@ -299,7 +304,7 @@ No secrets required in CI. No external database dependency. Every run starts cle
 
 ## Design Decisions
 
-Full rationale for every architectural choice — why pessimistic over optimistic locking, why immutable ledger, why dual database strategy, why multi-stage Docker — is documented in [`Buisness.md`](./BUSINESS.md).
+Full rationale for every architectural choice — why pessimistic over optimistic locking, why immutable ledger, why dual database strategy, why multi-stage Docker — is documented in [`BUSINESS.md`](./BUSINESS.md).
 
 The short version: **every decision optimises for financial correctness and production reliability over development convenience.**
 
@@ -331,11 +336,22 @@ The short version: **every decision optimises for financial correctness and prod
 
 ## Live Demo
 
-API is deployed at: **`https://advanced-wallet-ledger-api.onrender.com`**
+| | |
+|---|---|
+| **Base URL** | `https://advanced-wallet-ledger-api.onrender.com` |
+| **Swagger UI** | [`/swagger-ui.html`](https://advanced-wallet-ledger-api.onrender.com/swagger-ui.html) |
+| **OpenAPI spec** | [`/v3/api-docs`](https://advanced-wallet-ledger-api.onrender.com/v3/api-docs) |
 
-> Free tier — allow 15–30 seconds on first request if the instance has spun down.
+> ⏱️ Render free tier spins down after inactivity — allow 10–30 seconds for the first request to wake the instance.
 
-Swagger UI (interactive API docs): **` https://advanced-wallet-ledger-api.onrender.com/swagger-ui.html`**
+**Try it in one line:**
+```bash
+curl -X POST https://advanced-wallet-ledger-api.onrender.com/api/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{"username": "demo_user", "password": "SecurePass123"}'
+```
+
+Then log in, grab the JWT, and hit `/api/wallet/deposit` or explore everything interactively via Swagger UI above.
 
 ---
 
@@ -352,4 +368,4 @@ See [`CONTRIBUTING.md`](./CONTRIBUTING.md) for guidelines. Issues labelled [`goo
 
 ---
 
-*Built to production standard — not tutorial standard. See [`Buisness.md`](./BUSINESS.md) for the full problem context and design rationale.*
+*Built to production standard — not tutorial standard. See [`BUSINESS.md`](./BUSINESS.md) for the full problem context and design rationale.*
