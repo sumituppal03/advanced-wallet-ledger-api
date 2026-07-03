@@ -6,11 +6,7 @@ import java.util.TimeZone;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
-@SpringBootApplication(exclude = {
-    org.springframework.cloud.function.context.config.ContextFunctionCatalogAutoConfiguration.class,
-    org.springframework.ai.autoconfigure.openai.OpenAiAutoConfiguration.class,
-    org.springframework.ai.autoconfigure.chat.client.ChatClientAutoConfiguration.class
-})
+@SpringBootApplication
 public class WalletApplication {
 
     public static void main(String[] args) {
