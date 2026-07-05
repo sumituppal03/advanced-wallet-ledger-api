@@ -32,13 +32,11 @@ public class TransactionCategorizationService {
             if(VALID_CATEGORIES.contains(result)){
                 return result;
             }else{
-                System.out.println("Categorization guardrail triggered. LLM returned: '" + result
-                        + "'. Defaulting to " + DEFAULT_CATEGORY + ".");
+                System.out.println("Categorization guardrail triggered. LLM returned: '" + result+ "'. Defaulting to " + DEFAULT_CATEGORY + ".");
                 return DEFAULT_CATEGORY;        
             }
         } catch (Exception e) {
-           System.out.println("Categorization failed: " + e.getMessage()
-                    + ". Defaulting to " + DEFAULT_CATEGORY + ".");
+           System.out.println("Categorization failed: " + e.getMessage()+ ". Defaulting to " + DEFAULT_CATEGORY + ".");
             return DEFAULT_CATEGORY;
         }        
     }
